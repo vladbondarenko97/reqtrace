@@ -1,0 +1,14 @@
+{
+  "_note": "Ground truth for the planted defects in data/novapump_srs.md. Written in Phase 1, before any pipeline code. Never edit to make an eval pass.",
+  "defects": [
+    {"id": "D1", "type": "contradiction", "req_ids": ["NP-REQ-009", "NP-REQ-011"], "description": "Pediatric max bolus is 10 U in one requirement and 15 U in another."},
+    {"id": "D2", "type": "missing_requirement", "req_ids": ["NP-REQ-014"], "description": "Child Lock disables the Bolus button, but no requirement says what the pump does when the user presses it anyway."},
+    {"id": "D3", "type": "incomplete_enumeration", "req_ids": ["NP-REQ-001", "NP-REQ-024"], "description": "Settings mode list omits Extended Bolus, which the Delivery mode list includes."},
+    {"id": "D4", "type": "untestable", "req_ids": ["NP-REQ-018"], "description": "'Respond quickly' has no measurable value."},
+    {"id": "D5", "type": "orphan_trace", "req_ids": ["NP-REQ-025"], "description": "Traces to NP-SYS-007, which does not exist in the system requirements."}
+  ],
+  "legacy_steps_that_must_not_be_reused": {
+    "_note": "Secondary, informational check (not part of the 5/5 gate). Legacy steps referencing NP-100-only modes, buttons, or values that differ in NP-200.",
+    "steps": ["L-04", "L-06", "L-07", "L-08", "L-09", "L-12", "L-13", "L-17"]
+  }
+}

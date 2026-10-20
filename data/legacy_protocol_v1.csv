@@ -1,0 +1,20 @@
+step,description,action,expected_result,traces_to
+L-01,Program basal rate,Open Basal settings and enter a rate of 1.00 U/h,Pump accepts and displays 1.00 U/h,NP100-REQ-002
+L-02,Basal rate upper limit,Enter a basal rate of 5.00 U/h then try 5.05 U/h,5.00 U/h accepted; 5.05 U/h rejected,NP100-REQ-002
+L-03,Basal accuracy over 24 h,Run programmed basal for 24 hours and measure delivered volume,Delivered volume within ±5% of programmed,NP100-REQ-003
+L-04,Temp Basal mode,Select Temp Basal mode and set 150% for 1 hour,Pump delivers 150% of the basal rate for 1 hour then returns to Basal,NP100-REQ-004
+L-05,Deliver a bolus,Select Bolus and confirm 2.00 U,Delivery starts within 2 seconds and 2.00 U is delivered,NP100-REQ-006
+L-06,Maximum bolus,Request a 21 U bolus,Pump rejects any bolus above 20 U,NP100-REQ-007
+L-07,Menu navigation with arrow keys,Press Up Down and OK to reach the Settings menu,Settings menu opens,NP100-REQ-020
+L-08,Quick Bolus button,Press the Quick Bolus button once,A 1.00 U bolus is delivered,NP100-REQ-008
+L-09,Power button hold,Hold the Power button for 3 seconds,Pump powers off,NP100-REQ-021
+L-10,Suspend delivery,Issue a suspend command during basal delivery,All delivery stops within 2 seconds,NP100-REQ-010
+L-11,Resume delivery,Resume after suspend and confirm the prompt,Basal delivery restarts at the programmed rate,NP100-REQ-011
+L-12,Prime cartridge,Select Priming mode and run a prime cycle,Pump delivers 0.5 U prime and returns to Basal,NP100-REQ-012
+L-13,Square Wave bolus,Select Square Wave and set 4 U over 2 hours,4 U delivered evenly over 2 hours,NP100-REQ-009
+L-14,Occlusion alarm,Block the infusion line during basal delivery,Delivery stops; alarm tone sounds; message Occlusion detected is shown,NP100-REQ-014
+L-15,Low reservoir alarm,Reduce reservoir volume to 20 U,Alarm tone sounds; message Low reservoir is shown,NP100-REQ-015
+L-16,Low battery alarm,Discharge battery to 20%,Alarm tone sounds; message Low battery is shown,NP100-REQ-016
+L-17,Silence alarm,Press the OK button during an active alarm,Alarm tone silenced; message remains,NP100-REQ-017
+L-18,Event log entries,Deliver a basal then a bolus and open the event log,Both events listed with timestamp mode and units,NP100-REQ-018
+L-19,Set date and time,Open Settings and set the date and time,Date and time are saved and shown on the home screen,NP100-REQ-019
