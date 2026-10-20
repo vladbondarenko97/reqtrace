@@ -1,0 +1,31 @@
+[project]
+name = "reqtrace"
+version = "0.1.0"
+description = "Guardrailed AI pipeline: SRS -> findings -> trace matrix -> draft verification protocol (synthetic demo)"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2", "click>=8"]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]   # only for --backend anthropic
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+reqtrace = "reqtrace.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reqtrace"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests", "evals"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501", "E741", "E731"]
