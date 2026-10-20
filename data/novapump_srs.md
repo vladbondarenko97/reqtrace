@@ -40,7 +40,7 @@ Requirement format: each requirement has a heading with its ID and title, then i
 - **Modes:** Bolus
 - **Profiles:** Adult
 - **Traces to:** NP-SYS-002
-- **Text:** The pump shall limit a single bolus to a maximum of 25 U when the Adult profile is active.
+- **Text:** The pump shall reject any bolus request above 25 U when the Adult profile is active and shall display the message "Bolus exceeds limit".
 
 ### NP-REQ-006 — Extended Bolus Delivery
 - **Feature:** Delivery
@@ -61,7 +61,7 @@ Requirement format: each requirement has a heading with its ID and title, then i
 - **Modes:** Suspend, Basal
 - **Profiles:** Adult, Pediatric
 - **Traces to:** NP-SYS-001
-- **Text:** The pump shall resume basal delivery at the programmed rate only after the user confirms the resume prompt.
+- **Text:** The pump shall remain suspended until the user confirms the resume prompt, and shall then resume basal delivery at the programmed rate.
 
 
 ## Profiles
@@ -92,7 +92,7 @@ Requirement format: each requirement has a heading with its ID and title, then i
 - **Modes:** —
 - **Profiles:** Adult, Pediatric
 - **Traces to:** NP-SYS-008
-- **Text:** The pump shall allow the active profile to be changed only after the user enters a valid 4-digit PIN.
+- **Text:** The pump shall allow the active profile to be changed only after the user enters a valid 4-digit PIN. The pump shall reject an invalid PIN, keep the current profile active, and display the message "Invalid PIN".
 
 
 ## Child Lock and UI

@@ -27,6 +27,10 @@ class BudgetExceeded(LLMError):
     pass
 
 
+def _digest(system: str, user: str) -> str:
+    return hashlib.sha256(f"{system}\n---\n{user}".encode()).hexdigest()
+
+
 def extract_json(text: str) -> str:
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
     a, b = text.find("{"), text.rfind("}")
@@ -45,7 +49,7 @@ class LLM:
 
     def ask(self, task: str, user: str, model_cls: type[BaseModel], check=None):
         system = (PROMPTS / f"{task}.md").read_text()
-        prompt, first_hash = user, hashlib.sha256(user.encode()).hexdigest()
+        prompt, first_hash = user, _digest(system, user)
         for attempt in (1, 2):
             if self.tokens > self.max_tokens:
                 raise BudgetExceeded(f"token budget {self.max_tokens} exceeded ({self.tokens} used)")
@@ -76,7 +80,7 @@ class LLM:
 
     def _call(self, task, system, prompt, first_hash):
         if self.backend == "mock":
-            return self._mock(task, prompt, first_hash)
+            return self._mock(task, system, prompt, first_hash)
         if self.backend == "claude-code":
             return self._claude_code(system, prompt)
         return self._anthropic(system, prompt)
@@ -112,12 +116,12 @@ class LLM:
         text = "".join(b.text for b in r.content if b.type == "text")
         return text, r.usage.input_tokens, r.usage.output_tokens, {}
 
-    def _mock(self, task, prompt, first_hash):
+    def _mock(self, task, system, prompt, first_hash):
         path = FIXTURES / f"{task}.json"
         if not path.exists():
             raise LLMError(f"no fixture for '{task}'; record with: reqtrace run --record")
         fx = json.loads(path.read_text())
-        if fx["prompt_sha256"] != first_hash or hashlib.sha256(prompt.encode()).hexdigest() != first_hash:
+        if fx["prompt_sha256"] != first_hash or _digest(system, prompt) != first_hash:
             raise LLMError(f"fixture for '{task}' is stale (inputs or retry prompt changed); re-record it")
         self.model = fx["model"]
         return fx["response"], fx["input_tokens"], fx["output_tokens"], {"replayed": True, "recorded_latency_s": fx["latency_s"]}
