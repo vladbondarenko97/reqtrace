@@ -62,6 +62,8 @@ Scaling to a bigger document (a **projection**, not a measurement). The demo's m
 
 \*\*At the 47 tokens/s the local model sustained across four parallel pieces on this machine. The savings are real but modest per run: they matter with many documents and many revision cycles, or when the documents cannot leave the building. The trade is time (hours of overnight batch, not seconds) and a quality claim that has only been demonstrated at demo size. Not modeled: prompt caching, batch discounts, negotiated rates.
 
+![routing dashboard](docs/dashboard.png)
+
 Open [`docs/dashboard.html`](docs/dashboard.html) in a browser for the scorecard, the per-defect grid, the calculator with sliders for pages, price and runs per year, the drill table, and the routing policy with the evidence behind each choice.
 
 ## Try it
