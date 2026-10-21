@@ -1,4 +1,4 @@
-"""findings.md (grouped by severity) and summary.json."""
+"""Write the two outputs a person (findings.md) and a machine (summary.json) read."""
 import json
 from pathlib import Path
 
@@ -9,7 +9,8 @@ ORDER = ["high", "medium", "low"]
 
 
 def merge(findings: list[Finding]) -> tuple[list[Finding], int]:
-    """Drop an LLM finding that repeats a deterministic one (same type, same cited IDs)."""
+    """Drop an LLM finding that repeats a deterministic one (same type, same cited IDs).
+    Deterministic findings are sorted first so they always win a tie: the rule, not the model, gets the credit."""
     seen, out, dup = {}, [], 0
     for f in sorted(findings, key=lambda f: f.source != "deterministic"):
         key = (f.type, frozenset(f.cited_ids))

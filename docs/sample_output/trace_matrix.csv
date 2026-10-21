@@ -1,27 +1,27 @@
 requirement_id,requirement_title,step_id,origin,legacy_step,action
-NP-REQ-001,Delivery Modes,TC-001,new,,Review the delivery modes offered by the pump (Adult profile active) and select each in turn.
+NP-REQ-001,Delivery Modes,TC-001,new,,Open the delivery mode selection and list the available delivery modes.
 NP-REQ-002,Basal Rate Programming,TC-002,reused,L-01,Open Basal settings and enter a rate of 1.00 U/h
 NP-REQ-002,Basal Rate Programming,TC-003,reused,L-02,Enter a basal rate of 5.00 U/h then try 5.05 U/h
 NP-REQ-003,Basal Accuracy,TC-004,reused,L-03,Run programmed basal for 24 hours and measure delivered volume
 NP-REQ-004,Bolus Delivery,TC-005,reused,L-05,Select Bolus and confirm 2.00 U
-NP-REQ-005,Adult Maximum Bolus,TC-006,new,,"With the Adult profile active, request a bolus above 25 U (e.g. 25.05 U) and confirm."
-NP-REQ-006,Extended Bolus Delivery,TC-007,new,,"With the Adult profile active, program an extended bolus at the minimum duration (30 minutes) and again at the maximum duration (8 hours); measure delivery over each duration."
+NP-REQ-005,Adult Maximum Bolus,TC-006,new,,"With the Adult profile active, request a 25.05 U bolus."
+NP-REQ-006,Extended Bolus Delivery,TC-007,new,,"With the Adult profile active, select Extended Bolus and program a delivery over 30 minutes, then over 8 hours."
 NP-REQ-007,Suspend Delivery,TC-008,reused,L-10,Issue a suspend command during basal delivery
 NP-REQ-008,Resume Delivery,TC-009,reused,L-11,Resume after suspend and confirm the prompt
-NP-REQ-009,Pediatric Maximum Bolus,TC-010,new,,"With the Pediatric profile active, request a single bolus at the 10 U maximum and then attempt a single bolus above 10 U."
-NP-REQ-010,Pediatric Extended Bolus Hidden,TC-011,new,,"With the Pediatric profile active, open every menu and look for the Extended Bolus option."
-NP-REQ-011,Pediatric Bolus Limit Enforcement,TC-012,new,,"With the Pediatric profile active, request a bolus above 15 U (e.g. 15.05 U) and confirm."
-NP-REQ-012,Profile Switching,TC-013,new,,Attempt to change the active profile: (a) enter a valid 4-digit PIN; (b) enter an invalid PIN.
-NP-REQ-013,Child Lock Activation,TC-014,new,,"Hold the Menu button for 3 seconds, then hold it again for 3 seconds."
+NP-REQ-009,Pediatric Maximum Bolus,TC-010,new,,"With the Pediatric profile active, attempt to program a single bolus larger than 10 U."
+NP-REQ-010,Pediatric Extended Bolus Hidden,TC-011,new,,"With the Pediatric profile active, browse every menu and look for the Extended Bolus option."
+NP-REQ-011,Pediatric Bolus Limit Enforcement,TC-012,new,,"With the Pediatric profile active, request a bolus above 15 U (e.g. 15.05 U)."
+NP-REQ-012,Profile Switching,TC-013,new,,"Attempt to change the active profile by entering an invalid 4-digit PIN, then repeat with a valid 4-digit PIN."
+NP-REQ-013,Child Lock Activation,TC-014,new,,"Hold the Menu button for 3 seconds with Child Lock OFF, then hold it again for 3 seconds."
 NP-REQ-014,Child Lock Bolus Disable,TC-015,new,,"Turn Child Lock ON, then press the Bolus, Suspend/Resume, Menu, and Back buttons in turn."
-NP-REQ-015,Child Lock Indicator,TC-016,new,,Turn Child Lock ON and observe the home screen; then turn it OFF and observe again.
-NP-REQ-016,Button Set,TC-017,new,,Inspect the pump and count and identify the physical buttons.
-NP-REQ-017,Button Assignment per Profile,TC-018,new,,Set a button function assignment under the Adult profile and a different one under the Pediatric profile; switch between profiles (with valid PIN) and check button functions.
-NP-REQ-018,Button Responsiveness,TC-019,new,,Press the Bolus button and observe the pump's response.
+NP-REQ-015,Child Lock Indicator,TC-016,new,,Turn Child Lock ON and view the home screen.
+NP-REQ-016,Button Set,TC-017,new,,Inspect the pump for physical buttons.
+NP-REQ-017,Button Assignment per Profile,TC-018,new,,"Set a different button function assignment for the Adult and Pediatric profiles, then switch between the profiles using a valid PIN."
+NP-REQ-018,Button Responsiveness,TC-019,new,,Press the Bolus button and observe the pump response.
 NP-REQ-019,Occlusion Alarm,TC-020,reused,L-14,Block the infusion line during basal delivery
 NP-REQ-020,Low Reservoir Alarm,TC-021,reused,L-15,Reduce reservoir volume to 20 U
-NP-REQ-021,Low Battery Alarm,TC-022,reused,L-16,Discharge battery to 20%
-NP-REQ-022,Alarm Acknowledge,TC-023,new,,Trigger an alarm (e.g. low reservoir) and press the Back button; leave the alarm condition uncleared and observe the display; then clear the condition.
+NP-REQ-021,Low Battery Alarm,TC-022,new,,Discharge the battery to 20%.
+NP-REQ-022,Alarm Acknowledge,TC-023,new,,"Trigger an alarm (e.g. low reservoir), then press the Back button while the alarm is active."
 NP-REQ-023,Delivery Event Log,TC-024,reused,L-18,Deliver a basal then a bolus and open the event log
-NP-REQ-024,Settings Delivery Modes,TC-025,new,,Open the Settings menu and review the delivery modes for which default parameters can be configured.
-NP-REQ-025,Date and Time Setting,TC-026,new,,"From the Settings menu, set the date and time, changing the time by 1 minute."
+NP-REQ-024,Settings Delivery Modes,TC-025,new,,Open the Settings menu and view the delivery modes whose default parameters can be configured.
+NP-REQ-025,Date and Time Setting,TC-026,new,,"Open the Settings menu and set the date and time, changing the time by 1 minute."

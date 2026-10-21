@@ -1,4 +1,10 @@
-"""LLM review with the citation guardrail: findings must cite requirement IDs that exist."""
+"""The judgement part of the review, with the citation guardrail.
+
+The model reads every requirement and reports contradictions, gaps, incomplete lists and untestable
+wording. It is allowed to be wrong, but it is not allowed to point at something that isn't there:
+every finding must cite requirement IDs that exist in the parsed SRS, or it is dropped and counted.
+That turns "the model invented a requirement" from a silent error into a number on the dashboard.
+"""
 import json
 
 from .llm import LLM

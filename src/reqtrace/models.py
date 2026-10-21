@@ -1,4 +1,5 @@
-"""Pydantic data contracts shared by every module."""
+"""The data contracts. Everything a model returns is validated against one of these before the rest of
+the pipeline sees it; anything that doesn't fit is rejected, retried once, then fails the run loudly."""
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -7,7 +8,7 @@ Severity = Literal["high", "medium", "low"]
 LLMFindingType = Literal["contradiction", "missing_requirement", "incomplete_enumeration", "untestable"]
 FindingType = Literal[
     "contradiction", "missing_requirement", "incomplete_enumeration", "untestable",
-    "orphan_trace", "invalid_enum_value", "no_test", "test_unknown_req",
+    "orphan_trace", "invalid_enum_value", "no_test", "test_unknown_req", "baseline_drift",
 ]
 
 
@@ -19,7 +20,11 @@ class Requirement(BaseModel):
     modes: list[str] = []
     profiles: list[str] = []
     traces_to: str | None = Field(default=None, pattern=r"^NP-SYS-\d{3}$")
-    measurable: bool
+    measurable: bool = True  # set by the 'measure' step (a judgement), not by transcription
+
+
+class MeasureOut(BaseModel):
+    not_measurable: list[str]  # IDs of requirements with no verifiable criterion
 
 
 class ParseOut(BaseModel):

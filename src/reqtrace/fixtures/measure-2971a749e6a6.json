@@ -1,0 +1,14 @@
+{
+ "task": "measure",
+ "backend": "claude-code",
+ "model": "sonnet",
+ "prompt_sha256": "2971a749e6a6f56ab297331dad237aad3db04b51274a0fe9fd0a58286187fceb",
+ "input_tokens": 4663,
+ "output_tokens": 136,
+ "latency_s": 3.43,
+ "extra": {
+  "cost_usd_list": 0.0107664
+ },
+ "recorded_by": "reqtrace run --record",
+ "response": "{\"not_measurable\": [\"NP-REQ-018\"]}"
+}

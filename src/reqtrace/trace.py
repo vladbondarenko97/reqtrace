@@ -1,4 +1,9 @@
-"""Merge reused legacy steps and new steps into the requirement <-> test matrix."""
+"""Turn the model's draft into the finished protocol and the requirement <-> test matrix.
+
+The model proposes; this module decides what is allowed to stand. In particular a reused legacy step
+is copied word for word from the CSV, never from the model's output, so a "reused" step cannot have
+been quietly reworded on the way through.
+"""
 import csv
 from pathlib import Path
 
@@ -21,11 +26,13 @@ def build(reqs: list[Requirement], legacy: list[LegacyStep], d: DraftOut) -> tup
         known = [i for i in s.traces_to if i in feat]
         steps.append(Step(id="", feature=feat[known[0]] if known else "Unmapped", action=action, expected_result=expected,
                           traces_to=s.traces_to, origin="reused" if leg else "new", legacy_step=leg.step if leg else None))
+    # Order test steps by the first requirement they cover, so the protocol reads in SRS order.
     first = lambda s: min((order[i] for i in s.traces_to if i in order), default=10**6)
     steps.sort(key=first)  # stable: keeps model order within a requirement
     for n, s in enumerate(steps, 1):
         s.id = f"TC-{n:03d}"
     retired = [(by_id[r.legacy_step], r.reason) for r in d.retired if r.legacy_step in by_id]
+    # Any legacy step the model forgot to classify is retired by default: a human has to take it back.
     seen = {s.legacy_step for s in steps} | {l.step for l, _ in retired}
     retired += [(l, "Not classified by the model; engineer must decide.") for l in legacy if l.step not in seen]
     return steps, retired

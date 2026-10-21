@@ -19,3 +19,8 @@ Appended by `evals/run_eval.py --note`; never edited by hand.
 | 2026-10-20 23:37 | live (claude-code, sonnet) | 5/5 | 0 | 0 | 2/3 | 8/8 | 23700/9372 | iteration 5: fixture hash now covers system prompt; fixtures re-recorded (no prompt or data change) |
 | 2026-10-20 23:38 | live (claude-code, sonnet) | 5/5 | 0 | 0 | 2/3 | 8/8 | 23700/9723 | stability run 1/2 after iteration 5 |
 | 2026-10-20 23:39 | live (claude-code, sonnet) | 5/5 | 0 | 0 | 2/3 | 8/8 | 23700/9432 | stability run 2/2 after iteration 5 |
+| 2026-10-21 01:11 | live (claude-code, sonnet) | 5/5 | 0 | 0 | 4/3 | 8/8 | 32909/10195 | routing comparison: every step on the frontier model, edited legacy CSV (L-16, L-19) |
+| 2026-10-21 01:16 | live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: parse)) | 5/5 | 2 | 0 | 6/3 | 8/8 | 20294/9499 | routing comparison: parse on the local 9B model, rest on Claude |
+| 2026-10-21 01:19 | live (claude-code, sonnet) | 5/5 | 0 | 0 | 4/3 | 8/8 | 37226/9415 | routing comparison v2: every step on the frontier model |
+| 2026-10-21 01:19 | live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: parse)) | 5/5 | 0 | 0 | 4/3 | 8/8 | 24692/8933 | routing comparison v2: parse on the local 9B model, testability judged by Claude |
+| 2026-10-21 01:22 | live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: analyze, parse)) | 4/5 | 4 | 0 | 4/6 | 8/8 | 20639/9207 | routing comparison v2: parse and analyze on the local 9B model |

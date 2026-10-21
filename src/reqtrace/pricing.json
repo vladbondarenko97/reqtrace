@@ -1,0 +1,11 @@
+{
+  "_note": "ILLUSTRATIVE numbers for planning, not a quote. Replace with your contract rates. Everything labelled 'measured' elsewhere comes from the run logs, not from this file.",
+  "frontier_usd_per_mtok": {"input": 3.0, "output": 15.0},
+  "local": {"usd_per_mtok": 0.0, "machine_watts": 45, "usd_per_kwh": 0.15},
+  "assumptions": {
+    "tokens_per_page": 650,
+    "context_window_tokens": 80000,
+    "runs_per_year": 50,
+    "page_options": [100, 150, 200]
+  }
+}

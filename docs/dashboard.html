@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReqTrace · routing dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #14181f; --muted: #5b6573; --line: #e3e7ed;
+    --frontier: #4c5fd5; --local: #12906f; --warn: #b7791f; --bad: #c0392b; --good: #12906f;
+    --chip: #eef1f6; color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --panel: #171b23; --ink: #e8ecf2; --muted: #98a2b3; --line: #262c37;
+      --frontier: #8b9bff; --local: #3ccfa5; --warn: #e0a84a; --bad: #ff7b6b; --good: #3ccfa5;
+      --chip: #212733; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1218; --panel: #171b23; --ink: #e8ecf2; --muted: #98a2b3; --line: #262c37;
+    --frontier: #8b9bff; --local: #3ccfa5; --warn: #e0a84a; --bad: #ff7b6b; --good: #3ccfa5;
+    --chip: #212733; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .dot.f { background: var(--frontier); } .dot.l { background: var(--local); }
+  .dot.est { background: repeating-linear-gradient(45deg, var(--muted) 0 2px, transparent 2px 4px); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 16px; margin-bottom: 16px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .kpi .v { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+  .kpi .l { color: var(--muted); font-size: 13px; }
+  .kpi .n { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); font-size: 12px; margin: 0 4px 2px 0; white-space: nowrap; }
+  .chip.f { color: var(--frontier); } .chip.l { color: var(--local); }
+  .pass { color: var(--good); font-weight: 600; } .fail { color: var(--bad); font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+  .bar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--chip); }
+  .bar > span { display: block; height: 100%; }
+  .bar .f { background: var(--frontier); } .bar .l { background: var(--local); }
+  .bar .est.f { background: repeating-linear-gradient(45deg, var(--frontier) 0 4px, transparent 4px 8px); }
+  .bar .est.l { background: repeating-linear-gradient(45deg, var(--local) 0 4px, transparent 4px 8px); }
+  .row { display: grid; grid-template-columns: 150px 1fr 92px; gap: 10px; align-items: center; margin: 7px 0; font-size: 13px; }
+  .row .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 18px; margin-bottom: 14px; }
+  .controls label { font-size: 12px; color: var(--muted); display: block; }
+  .controls output { color: var(--ink); font-weight: 600; float: right; }
+  input[type=range] { width: 100%; accent-color: var(--frontier); }
+  .big { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+  .cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 6px 0 14px; }
+  .cell { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .cell .l { color: var(--muted); font-size: 12px; }
+  .foot { color: var(--muted); font-size: 12.5px; }
+  .foot li { margin: 3px 0; }
+  code { background: var(--chip); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .tag-est { font-size: 11px; color: var(--muted); border: 1px dashed var(--muted); border-radius: 4px; padding: 0 5px; margin-left: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ReqTrace · routing dashboard</h1>
+  <p class="sub">Which model should do which step? Quality is measured first; cost only counts for work the eval says is safe to move.
+     Fictional Novapump NP-200 data, all documents synthetic.</p>
+  <div class="legend">
+    <span><span class="dot f"></span>Frontier model (API / Claude Code)</span>
+    <span><span class="dot l"></span>Local model (oMLX, on this machine)</span>
+    <span><span class="dot est"></span>Hatched or tagged <b>est.</b> = projection, not a measurement</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <h2>Scorecard: three ways to run the same pipeline</h2>
+    <p class="hint">Same documents, same prompts, same answer key. Only the routing changes. Measured from each run's log.</p>
+    <div class="scroll"><table id="scorecard"></table></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Planted defects caught</h2>
+      <p class="hint">One column per defect in the answer key.</p>
+      <table id="defects"></table>
+    </section>
+    <section>
+      <h2>Where the work happened</h2>
+      <p class="hint">Output tokens by step (output is the expensive side of an API bill).</p>
+      <div id="tokenbars"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>What a bigger document would cost <span class="tag-est">est.</span></h2>
+    <p class="hint">Takes the measured token profile of the demo SRS and scales its content to your page count. Fixed prompt overhead is charged per call, and long inputs are split into more calls. Prices are illustrative: change them.</p>
+    <div class="controls">
+      <div><label>SRS pages <output id="o-pages"></output></label><input id="pages" type="range" min="10" max="300" step="10"></div>
+      <div><label>Tokens per page <output id="o-tpp"></output></label><input id="tpp" type="range" min="300" max="1200" step="50"></div>
+      <div><label>Frontier input, $ per M tokens <output id="o-pin"></output></label><input id="pin" type="range" min="0.25" max="15" step="0.25"></div>
+      <div><label>Frontier output, $ per M tokens <output id="o-pout"></output></label><input id="pout" type="range" min="1" max="75" step="1"></div>
+      <div><label>Runs per year (revisions, re-reviews) <output id="o-runs"></output></label><input id="runs" type="range" min="1" max="500" step="1"></div>
+    </div>
+    <div class="cells" id="calc-cells"></div>
+    <div id="calc-bars"></div>
+    <div class="scroll" style="margin-top:10px"><table id="calc-table"></table></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Out-of-process edit: caught by two independent layers</h2>
+      <p class="hint">Someone edited the legacy test protocol after sign-off. A hash comparison flags it; separately, the AI draft step refuses to reuse the edited step.</p>
+      <div class="scroll"><table id="incident"></table></div>
+    </section>
+    <section>
+      <h2>Routing policy, decided by evidence</h2>
+      <p class="hint">A step runs locally only if the ledger shows it is safe.</p>
+      <div class="scroll"><table id="routing"></table></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>How to read this</h2>
+    <ul class="foot">
+      <li><b>Measured</b> numbers come from <code>llm_log.jsonl</code>. The "list cost" is the per-call figure the Claude Code CLI reports itself.</li>
+      <li><b>Projected</b> numbers use <code>pricing.json</code> (illustrative rates) and a straight-line scale-up. They ignore prompt caching, batch discounts and negotiated rates, and they assume the local model keeps its quality on a longer document, which the eval above only demonstrates at demo size.</li>
+      <li>Local tokens are free per token. The cost shown for them is electricity at the machine wattage in <code>pricing.json</code>. The real price of local is time: see the "local model time" cell above.</li>
+      <li>Local token counts use a different tokenizer from the hosted models, so token counts differ a little between columns.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const D = {"runs": {"Frontier only": {"when": "2026-10-21 01:19", "label": "Frontier only", "note": "routing comparison v2: every step on the frontier model", "mode": "live (claude-code, sonnet)", "caught": 5, "defects": 5, "caught_by_defect": {"D1": true, "D2": true, "D3": true, "D4": true, "D5": true}, "false_positives": 0, "rejected": 0, "legacy_retired_ok": 8, "legacy_retired_total": 8, "drift": [{"id": "L-16", "role": "legacy", "kind": "changed", "change": "\"20%\" -> \"25%\"", "retired_by_draft": true}, {"id": "L-19", "role": "legacy", "kind": "changed", "change": "removed \"and time\" after \"set the date\"; removed \"and time\" after \"Date\"", "retired_by_draft": true}], "parse_fidelity": null, "by_backend": {"claude-code": {"calls": 7, "input_tokens": 37226, "output_tokens": 9415, "latency_s": 64.1, "cost_usd_list": 0.1947}}, "by_task": {"parse": {"backend": "claude-code", "calls": 4, "input_tokens": 15387, "output_tokens": 3372, "latency_s": 22.9}, "measure": {"backend": "claude-code", "calls": 1, "input_tokens": 4661, "output_tokens": 23, "latency_s": 2.7}, "analyze": {"backend": "claude-code", "calls": 1, "input_tokens": 7704, "output_tokens": 1132, "latency_s": 8.4}, "draft": {"backend": "claude-code", "calls": 1, "input_tokens": 9474, "output_tokens": 4888, "latency_s": 30.1}}, "profile": {"parse": {"content_in": 10547.4, "sys_in": 1209.9, "out": 3372.0, "calls": 4}, "measure": {"content_in": 4050.2, "sys_in": 610.8, "out": 23.0, "calls": 1}, "analyze": {"content_in": 6083.0, "sys_in": 1621.0, "out": 1132.0, "calls": 1}, "draft": {"content_in": 8361.2, "sys_in": 1112.8, "out": 4888.0, "calls": 1}}, "cost_usd_list": 0.1947, "retries": 0, "escalations": 0, "phases_s": {"integrity": 0.0, "parse": 6.3, "measure": 2.7, "analyze": 8.5, "draft": 30.1, "trace": 0.0}, "wall_time_s": 47.5}, "Hybrid": {"when": "2026-10-21 01:19", "label": "Hybrid", "note": "routing comparison v2: parse on the local 9B model, testability judged by Claude", "mode": "live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: parse))", "caught": 5, "defects": 5, "caught_by_defect": {"D1": true, "D2": true, "D3": true, "D4": true, "D5": true}, "false_positives": 0, "rejected": 0, "legacy_retired_ok": 8, "legacy_retired_total": 8, "drift": [{"id": "L-16", "role": "legacy", "kind": "changed", "change": "\"20%\" -> \"25%\"", "retired_by_draft": true}, {"id": "L-19", "role": "legacy", "kind": "changed", "change": "removed \"and time\" after \"set the date\"; removed \"and time\" after \"Date\"", "retired_by_draft": true}], "parse_fidelity": {"identical": 25, "total": 25, "fields_differing": {}}, "by_backend": {"omlx": {"calls": 4, "input_tokens": 2854, "output_tokens": 3067, "latency_s": 231.0, "cost_usd_list": 0.0}, "claude-code": {"calls": 3, "input_tokens": 21838, "output_tokens": 5866, "latency_s": 42.8, "cost_usd_list": 0.0884}}, "by_task": {"parse": {"backend": "omlx", "calls": 4, "input_tokens": 2854, "output_tokens": 3067, "latency_s": 231.1}, "measure": {"backend": "claude-code", "calls": 1, "input_tokens": 4663, "output_tokens": 136, "latency_s": 3.4}, "analyze": {"backend": "claude-code", "calls": 1, "input_tokens": 7702, "output_tokens": 1098, "latency_s": 10.1}, "draft": {"backend": "claude-code", "calls": 1, "input_tokens": 9473, "output_tokens": 4632, "latency_s": 29.2}}, "profile": {"parse": {"content_in": 1969.0, "sys_in": 221.2, "out": 3067.0, "calls": 4}, "measure": {"content_in": 4051.9, "sys_in": 611.1, "out": 136.0, "calls": 1}, "analyze": {"content_in": 6081.4, "sys_in": 1620.6, "out": 1098.0, "calls": 1}, "draft": {"content_in": 8360.3, "sys_in": 1112.7, "out": 4632.0, "calls": 1}}, "cost_usd_list": 0.0884, "retries": 0, "escalations": 0, "phases_s": {"integrity": 0.0, "parse": 65.4, "measure": 3.4, "analyze": 10.1, "draft": 29.2, "trace": 0.0}, "wall_time_s": 108.2}, "Local-heavy": {"when": "2026-10-21 01:22", "label": "Local-heavy", "note": "routing comparison v2: parse and analyze on the local 9B model", "mode": "live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: analyze, parse))", "caught": 4, "defects": 5, "caught_by_defect": {"D1": true, "D2": true, "D3": false, "D4": true, "D5": true}, "false_positives": 4, "rejected": 0, "legacy_retired_ok": 8, "legacy_retired_total": 8, "drift": [{"id": "L-16", "role": "legacy", "kind": "changed", "change": "\"20%\" -> \"25%\"", "retired_by_draft": true}, {"id": "L-19", "role": "legacy", "kind": "changed", "change": "removed \"and time\" after \"set the date\"; removed \"and time\" after \"Date\"", "retired_by_draft": true}], "parse_fidelity": {"identical": 25, "total": 25, "fields_differing": {}}, "by_backend": {"omlx": {"calls": 5, "input_tokens": 6504, "output_tokens": 3858, "latency_s": 245.9, "cost_usd_list": 0.0}, "claude-code": {"calls": 2, "input_tokens": 14135, "output_tokens": 5349, "latency_s": 38.1, "cost_usd_list": 0.0733}}, "by_task": {"parse": {"backend": "omlx", "calls": 4, "input_tokens": 2854, "output_tokens": 3067, "latency_s": 193.4}, "measure": {"backend": "claude-code", "calls": 1, "input_tokens": 4662, "output_tokens": 23, "latency_s": 5.3}, "analyze": {"backend": "omlx", "calls": 1, "input_tokens": 3650, "output_tokens": 791, "latency_s": 52.5}, "draft": {"backend": "claude-code", "calls": 1, "input_tokens": 9473, "output_tokens": 5326, "latency_s": 32.7}}, "profile": {"parse": {"content_in": 1969.0, "sys_in": 221.2, "out": 3067.0, "calls": 4}, "measure": {"content_in": 4051.1, "sys_in": 610.9, "out": 23.0, "calls": 1}, "analyze": {"content_in": 2882.0, "sys_in": 768.0, "out": 791.0, "calls": 1}, "draft": {"content_in": 8360.3, "sys_in": 1112.7, "out": 5326.0, "calls": 1}}, "cost_usd_list": 0.0733, "retries": 0, "escalations": 0, "phases_s": {"integrity": 0.0, "parse": 54.8, "measure": 5.4, "analyze": 52.5, "draft": 32.7, "trace": 0.0}, "wall_time_s": 145.4}, "Local only": {"when": "2026-10-21 01:26", "label": "Local only", "note": "routing comparison v2: every step on the 9B local model (aborted at draft, same error as v1: deterministic at temperature 0)", "mode": "aborted (omlx, Qwen3.5-9B-MLX-8bit)", "aborted": "draft: output failed validation twice: unknown legacy steps []; legacy steps used more than once ['L-17']", "by_backend": {"omlx": {"calls": 8, "input_tokens": 18342, "output_tokens": 7868, "latency_s": 420.4, "cost_usd_list": 0.0}}, "by_task": {"parse": {"backend": "omlx", "calls": 4, "input_tokens": 2854, "output_tokens": 3067, "latency_s": 192.9}, "measure": {"backend": "omlx", "calls": 1, "input_tokens": 1414, "output_tokens": 14, "latency_s": 5.3}, "analyze": {"backend": "omlx", "calls": 1, "input_tokens": 3650, "output_tokens": 791, "latency_s": 41.1}, "draft": {"backend": "omlx", "calls": 2, "input_tokens": 10424, "output_tokens": 3996, "latency_s": 181.0}}, "profile": {"parse": {"content_in": 1969.0, "sys_in": 221.2, "out": 3067.0, "calls": 4}, "measure": {"content_in": 1228.7, "sys_in": 185.3, "out": 14.0, "calls": 1}, "analyze": {"content_in": 2882.0, "sys_in": 768.0, "out": 791.0, "calls": 1}, "draft": {"content_in": 4586.6, "sys_in": 610.4, "out": 2014.0, "calls": 1}}, "cost_usd_list": 0.0, "phases_s": {"integrity": 0.0, "parse": 55.3, "measure": 5.3, "analyze": 41.1, "draft": 1792545817.5202172}}, "Hybrid v1": {"when": "2026-10-21 01:16", "label": "Hybrid v1", "note": "routing comparison: parse on the local 9B model, rest on Claude", "mode": "live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: parse))", "caught": 5, "defects": 5, "caught_by_defect": {"D1": true, "D2": true, "D3": true, "D4": true, "D5": true}, "false_positives": 2, "rejected": 0, "legacy_retired_ok": 8, "legacy_retired_total": 8, "drift": [{"id": "L-16", "role": "legacy", "kind": "changed", "change": "\"20%\" -> \"25%\"", "retired_by_draft": true}, {"id": "L-19", "role": "legacy", "kind": "changed", "change": "removed \"and time\" after \"set the date\"; removed \"and time\" after \"Date\"", "retired_by_draft": true}], "parse_fidelity": {"identical": 23, "total": 25, "fields_differing": {"measurable": 2}}, "by_backend": {"omlx": {"calls": 4, "input_tokens": 3114, "output_tokens": 3242, "latency_s": 204.3, "cost_usd_list": 0.0}, "claude-code": {"calls": 2, "input_tokens": 17180, "output_tokens": 6257, "latency_s": 41.6, "cost_usd_list": 0.1261}}, "by_task": {"parse": {"backend": "omlx", "calls": 4, "input_tokens": 3114, "output_tokens": 3242, "latency_s": 204.3}, "analyze": {"backend": "claude-code", "calls": 1, "input_tokens": 7705, "output_tokens": 1267, "latency_s": 9.3}, "draft": {"backend": "claude-code", "calls": 1, "input_tokens": 9475, "output_tokens": 4990, "latency_s": 32.3}}, "profile": {"parse": {"content_in": 1929.6, "sys_in": 296.1, "out": 3242.0, "calls": 4}, "analyze": {"content_in": 6084.1, "sys_in": 1620.9, "out": 1267.0, "calls": 1}, "draft": {"content_in": 8362.2, "sys_in": 1112.8, "out": 4990.0, "calls": 1}}, "cost_usd_list": 0.1261, "retries": 0, "escalations": 0, "phases_s": {"integrity": 0.0, "parse": 58.7, "analyze": 9.3, "draft": 32.3, "trace": 0.0}, "wall_time_s": 100.4}}, "configs": ["Frontier only", "Hybrid", "Local-heavy", "Local only", "Hybrid v1"], "subtitle": {"Hybrid": "parse local", "Local-heavy": "parse + analyze local", "Local only": "every step local", "Hybrid v1": "first attempt: local also judged testability"}, "profile": {"parse": {"content_in": 1969.0, "sys_in": 221.2, "out": 3067.0, "calls": 4}, "measure": {"content_in": 1228.7, "sys_in": 185.3, "out": 14.0, "calls": 1}, "analyze": {"content_in": 2882.0, "sys_in": 768.0, "out": 791.0, "calls": 1}, "draft": {"content_in": 4586.6, "sys_in": 610.4, "out": 2014.0, "calls": 1}}, "profile_from": "Local only", "pricing": {"_note": "ILLUSTRATIVE numbers for planning, not a quote. Replace with your contract rates. Everything labelled 'measured' elsewhere comes from the run logs, not from this file.", "frontier_usd_per_mtok": {"input": 3.0, "output": 15.0}, "local": {"usd_per_mtok": 0.0, "machine_watts": 45, "usd_per_kwh": 0.15}, "assumptions": {"tokens_per_page": 650, "context_window_tokens": 80000, "runs_per_year": 50, "page_options": [100, 150, 200]}}, "local_tps": 46.9, "routing": [{"task": "parse", "tier": "Local", "why": "Mechanical transcription; every output is checked against the document's own headings.", "evidence": "Local 9B reproduced the document faithfully; the hybrid run caught 5/5 with 0 false positives."}, {"task": "measure", "tier": "Frontier", "why": "A judgement: could a tester verify this sentence? Cheap for the frontier model (short answer).", "evidence": "First attempt let the local model judge it: it disagreed with the frontier model on 2 requirements and the run produced 2 false positives. That is why this step is split out."}, {"task": "analyze", "tier": "Frontier", "why": "Cross-requirement judgement: contradictions, gaps, incomplete lists.", "evidence": "Parse + analyze local: caught 4/5, 4 false positives."}, {"task": "draft", "tier": "Frontier", "why": "Judgement plus writing: decide which old test steps still hold, author new ones.", "evidence": "All-local run aborted: draft: output failed validation twice: unknown legacy steps []; legacy steps used more than once ['L-17']"}], "tasks": ["parse", "measure", "analyze", "draft"]};
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Math.round(n).toLocaleString("en-US");
+const usd = (n) => (n < 0.1 && n > 0 ? "$" + n.toFixed(3) : "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+const dur = (s) => (s < 90 ? Math.round(s) + " s" : s < 5400 ? (s / 60).toFixed(1) + " min" : (s / 3600).toFixed(1) + " h");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const tierOf = (b) => (b === "omlx" ? "l" : "f");
+const label = {omlx: "local 9B", "claude-code": "Claude", anthropic: "Claude API"};
+const R = D.runs, C = D.configs;
+
+function totals(run, tier) {
+  let tin = 0, tout = 0, secs = 0;
+  for (const [b, v] of Object.entries(run.by_backend)) if (tierOf(b) === tier) { tin += v.input_tokens; tout += v.output_tokens; secs += v.latency_s; }
+  return {tin, tout, secs};
+}
+const energy = (secs) => secs / 3600 * D.pricing.local.machine_watts / 1000 * D.pricing.local.usd_per_kwh;
+
+/* ---- KPIs ---------------------------------------------------------------------------------- */
+(function kpis() {
+  const f = R["Frontier only"], h = R["Hybrid"], l = R["Local only"];
+  const cards = [];
+  if (f && h) {
+    const saved = 1 - h.cost_usd_list / f.cost_usd_list;
+    cards.push([usd(h.cost_usd_list) + " vs " + usd(f.cost_usd_list), "Measured cost of one demo run, hybrid vs all-frontier",
+                `${Math.round(saved * 100)}% lower on a 25-requirement SRS. List price per Claude Code CLI.`, saved > 0 ? "good" : ""]);
+    cards.push([`${h.caught}/${h.defects} · ${h.false_positives} FP`, "Hybrid quality gate",
+                `All-frontier: ${f.caught}/${f.defects} · ${f.false_positives} FP. Quality did not move when parse went local.`, h.caught === h.defects && !h.false_positives ? "good" : "bad"]);
+  }
+  if (l) cards.push(l.aborted ? ["Aborted", "Everything on the 9B local model", "It could not produce valid output for the drafting step. Judgement steps stay on the frontier model.", "warn"]
+                     : [`${l.caught}/${l.defects} · ${l.false_positives} FP`, "Everything on the 9B local model", "Measured, same documents and answer key.", l.caught === l.defects && !l.false_positives ? "good" : "warn"]);
+  const src = [h, f].find((x) => x && x.drift);
+  if (src && src.drift.length) {
+    const both = src.drift.filter((d) => d.retired_by_draft).length;
+    cards.push([`${src.drift.length} / ${src.drift.length}`, "Out-of-process edits flagged", `${both} also independently retired by the AI draft step.`, "good"]);
+  }
+  $("kpis").innerHTML = cards.map(([v, l, n, c]) => `<div class="kpi"><div class="v ${c}">${esc(v)}</div><div class="l">${esc(l)}</div><div class="n">${esc(n)}</div></div>`).join("");
+})();
+
+/* ---- Scorecard ----------------------------------------------------------------------------- */
+const chipsFor = (r) => D.tasks.map((t) => { const x = r.by_task[t]; return x ? `<span class="chip ${tierOf(x.backend)}">${t}: ${label[x.backend] || x.backend}</span>` : ""; }).join("");
+(function scorecard() {
+  const head = "<tr><th>Configuration</th><th>Where each step ran</th><th class='num'>Defects</th><th class='num'>False pos.</th><th class='num'>Old steps retired</th><th class='num'>Paid tokens in / out</th><th class='num'>Local tokens in / out</th><th class='num'>Run time</th><th class='num'>List cost</th></tr>";
+  const rows = C.map((c) => {
+    const r = R[c], p = totals(r, "f"), l = totals(r, "l"), sub = D.subtitle[c] ? ` <span class="hint">${esc(D.subtitle[c])}</span>` : "";
+    const tok = `<td class="num">${p.tin || p.tout ? fmt(p.tin) + " / " + fmt(p.tout) : "–"}</td><td class="num">${l.tin || l.tout ? fmt(l.tin) + " / " + fmt(l.tout) : "–"}</td>`;
+    const name = `<td><b>${esc(c)}</b>${sub}<br><span class="hint">${esc(r.when)} UTC</span></td><td>${chipsFor(r)}</td>`;
+    if (r.aborted) return `<tr>${name}<td class="num fail" colspan="3">aborted: model output failed validation twice</td>${tok}<td class="num">–</td><td class="num">${usd(r.cost_usd_list + energy(l.secs))}</td></tr>`;
+    const okq = r.caught === r.defects && !r.false_positives;
+    return `<tr>${name}<td class="num ${r.caught === r.defects ? "pass" : "fail"}">${r.caught}/${r.defects}</td>
+      <td class="num ${r.false_positives ? "fail" : "pass"}">${r.false_positives}</td><td class="num">${r.legacy_retired_ok}/${r.legacy_retired_total}</td>${tok}
+      <td class="num">${dur(r.wall_time_s)}</td><td class="num">${usd(r.cost_usd_list + energy(l.secs))}${okq ? "" : ' <span class="warn">(fails gate)</span>'}</td></tr>`;
+  }).join("");
+  $("scorecard").innerHTML = head + rows;
+})();
+
+/* ---- Defect grid --------------------------------------------------------------------------- */
+(function defects() {
+  const ids = Object.keys(Object.values(R).find((r) => r.caught_by_defect).caught_by_defect);
+  $("defects").innerHTML = "<tr><th></th>" + ids.map((i) => `<th class="num">${i}</th>`).join("") + "<th class='num'>FP</th></tr>" +
+    C.map((c) => R[c].aborted ? `<tr><td>${esc(c)}</td><td class="num" colspan="${ids.length + 1}" style="color:var(--muted)">aborted</td></tr>`
+      : `<tr><td>${esc(c)}</td>` + ids.map((i) => R[c].caught_by_defect[i] ? '<td class="num pass">✓</td>' : '<td class="num fail">✗</td>').join("") +
+        `<td class="num ${R[c].false_positives ? "fail" : "pass"}">${R[c].false_positives}</td></tr>`).join("");
+})();
+
+/* ---- Output tokens by step ----------------------------------------------------------------- */
+(function tokenbars() {
+  const outs = (c) => D.tasks.map((t) => (R[c].by_task[t] || {output_tokens: 0}).output_tokens);
+  const max = Math.max(...C.flatMap(outs));
+  $("tokenbars").innerHTML = C.map((c) => `<div style="margin-bottom:12px"><b style="font-size:13px">${esc(c)}</b>` + D.tasks.map((t) => {
+    const x = R[c].by_task[t]; if (!x) return "";
+    return `<div class="row"><span>${t}</span><div class="bar"><span class="${tierOf(x.backend)}" style="width:${x.output_tokens / max * 100}%"></span></div><span class="val">${fmt(x.output_tokens)}</span></div>`;
+  }).join("") + "</div>").join("");
+})();
+
+/* ---- Projection calculator ----------------------------------------------------------------- */
+const P = D.profile, A = D.pricing.assumptions;
+const inputs = {pages: 150, tpp: A.tokens_per_page, pin: D.pricing.frontier_usd_per_mtok.input, pout: D.pricing.frontier_usd_per_mtok.output, runs: A.runs_per_year};
+const SCEN = {"All frontier": {parse: "f", measure: "f", analyze: "f", draft: "f"}, "Hybrid: parse on local model": {parse: "l", measure: "f", analyze: "f", draft: "f"}};
+
+function project(pages, routing) {
+  const scale = pages * inputs.tpp / P.parse.content_in;
+  let usdTotal = 0, localOut = 0;
+  const tasks = D.tasks.map((t) => {
+    const p = P[t], content = p.content_in * scale;
+    const calls = t === "parse" ? p.calls * scale : Math.max(1, Math.ceil(content / A.context_window_tokens));
+    const tin = content + calls * p.sys_in, tout = p.out * scale;
+    const cost = routing[t] === "l" ? 0 : tin / 1e6 * inputs.pin + tout / 1e6 * inputs.pout;
+    if (routing[t] === "l") localOut += tout;
+    usdTotal += cost;
+    return {t, tier: routing[t], calls, tin, tout, cost};
+  });
+  return {tasks, usd: usdTotal, localOut};
+}
+
+function calc() {
+  for (const k of Object.keys(inputs)) $("o-" + k).textContent = k === "pin" || k === "pout" ? "$" + inputs[k] : fmt(inputs[k]);
+  const [fName, hName] = Object.keys(SCEN);
+  const f = project(inputs.pages, SCEN[fName]), h = project(inputs.pages, SCEN[hName]);
+  const saved = f.usd - h.usd, pct = f.usd ? saved / f.usd * 100 : 0;
+  const localSecs = D.local_tps ? h.localOut / D.local_tps : 0;
+  const kwh = localSecs / 3600 * D.pricing.local.machine_watts / 1000;
+  $("calc-cells").innerHTML = [
+    ["All frontier, per run", usd(f.usd), ""],
+    ["Hybrid, per run", usd(h.usd), ""],
+    ["Saved per run", usd(saved), `${pct.toFixed(0)}%`],
+    [`Saved per year (${inputs.runs} runs)`, usd(saved * inputs.runs), ""],
+    ["Local model time per run", D.local_tps ? dur(localSecs) : "n/a", D.local_tps ? `at ${D.local_tps} tok/s measured · ≈ ${usd(kwh * D.pricing.local.usd_per_kwh)} electricity` : ""],
+  ].map(([l, v, n]) => `<div class="cell"><div class="l">${l}<span class="tag-est">est.</span></div><div class="big">${v}</div><div class="l">${n}</div></div>`).join("");
+
+  const maxUsd = Math.max(...A.page_options.map((pg) => project(pg, SCEN[fName]).usd), f.usd);
+  $("calc-bars").innerHTML = [...new Set([...A.page_options, inputs.pages])].sort((a, b) => a - b).map((pg) => {
+    const a = project(pg, SCEN[fName]), b = project(pg, SCEN[hName]);
+    return `<div class="row"><span>${pg} pages</span><div><div class="bar" style="margin-bottom:3px"><span class="est f" style="width:${a.usd / maxUsd * 100}%"></span></div><div class="bar"><span class="est l" style="width:${b.usd / maxUsd * 100}%"></span></div></div><span class="val">${usd(a.usd)}<br>${usd(b.usd)}</span></div>`;
+  }).join("");
+
+  $("calc-table").innerHTML = "<tr><th>Step (hybrid routing)</th><th>Runs on</th><th class='num'>Calls</th><th class='num'>Tokens in</th><th class='num'>Tokens out</th><th class='num'>Cost</th></tr>" +
+    h.tasks.map((x) => `<tr><td>${x.t}</td><td><span class="chip ${x.tier}">${x.tier === "l" ? "local 9B" : "Claude"}</span></td><td class="num">${fmt(x.calls)}</td><td class="num">${fmt(x.tin)}</td><td class="num">${fmt(x.tout)}</td><td class="num">${x.tier === "l" ? "$0 + power" : usd(x.cost)}</td></tr>`).join("");
+}
+for (const k of Object.keys(inputs)) {
+  $(k).value = inputs[k];
+  $(k).addEventListener("input", () => { inputs[k] = parseFloat($(k).value); calc(); });
+}
+calc();
+
+/* ---- Incident ------------------------------------------------------------------------------ */
+(function incident() {
+  const r = R["Hybrid"] || R["Frontier only"] || R[C[0]];
+  const rows = r.drift.map((d) => `<tr><td><b>${esc(d.id)}</b><br><span class="hint">${esc(d.role)}</span></td><td>${esc(d.change)}</td>
+    <td class="pass">flagged</td><td class="${d.retired_by_draft ? "pass" : "warn"}">${d.retired_by_draft ? "retired" : "reused"}</td></tr>`).join("");
+  $("incident").innerHTML = "<tr><th>Unit</th><th>What changed</th><th>Hash check</th><th>AI draft step</th></tr>" + (rows || "<tr><td colspan=4>No drift in this run.</td></tr>");
+})();
+
+/* ---- Routing ------------------------------------------------------------------------------- */
+$("routing").innerHTML = "<tr><th>Step</th><th>Runs on</th><th>Why / evidence</th></tr>" + D.routing.map((x) =>
+  `<tr><td><b>${x.task}</b></td><td><span class="chip ${x.tier === "Local" ? "l" : "f"}">${x.tier}</span></td><td>${esc(x.why)}<br><span class="hint">${esc(x.evidence)}</span></td></tr>`).join("");
+</script>
+</body>
+</html>

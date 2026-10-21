@@ -1,12 +1,12 @@
 {
-  "mode": "live (claude-code, sonnet)",
-  "model": "sonnet",
+  "mode": "live (hybrid, sonnet + Qwen3.5-9B-MLX-8bit (local: parse))",
+  "model": "sonnet + Qwen3.5-9B-MLX-8bit (local: parse)",
   "requirements": 25,
   "counts": {
-    "total": 5,
-    "deterministic": 2,
+    "total": 7,
+    "deterministic": 4,
     "llm": 3,
-    "high": 2,
+    "high": 4,
     "medium": 3,
     "low": 0
   },
@@ -15,8 +15,8 @@
   "trace": {
     "requirements_covered": 25,
     "requirements_total": 25,
-    "steps_reused": 10,
-    "steps_new": 16,
+    "steps_reused": 9,
+    "steps_new": 17,
     "legacy_retired": [
       "L-04",
       "L-06",
@@ -25,18 +25,117 @@
       "L-09",
       "L-12",
       "L-13",
+      "L-16",
       "L-17",
       "L-19"
     ]
   },
+  "drift": [
+    {
+      "id": "L-16",
+      "role": "legacy",
+      "kind": "changed",
+      "change": "\"20%\" -> \"25%\"",
+      "retired_by_draft": true
+    },
+    {
+      "id": "L-19",
+      "role": "legacy",
+      "kind": "changed",
+      "change": "\"and time\" -> \"(nothing)\"; \"and time\" -> \"(nothing)\"",
+      "retired_by_draft": true
+    }
+  ],
   "llm": {
-    "calls": 3,
+    "calls": 7,
     "retries": 0,
-    "input_tokens": 23702,
-    "output_tokens": 9332,
-    "latency_s": 51.9
+    "escalations": 0,
+    "input_tokens": 24692,
+    "output_tokens": 8933,
+    "latency_s": 273.8,
+    "by_backend": {
+      "omlx": {
+        "calls": 4,
+        "input_tokens": 2854,
+        "output_tokens": 3067,
+        "latency_s": 231.0,
+        "cost_usd_list": 0.0
+      },
+      "claude-code": {
+        "calls": 3,
+        "input_tokens": 21838,
+        "output_tokens": 5866,
+        "latency_s": 42.8,
+        "cost_usd_list": 0.0884
+      }
+    },
+    "by_task": {
+      "parse": {
+        "backend": "omlx",
+        "calls": 4,
+        "input_tokens": 2854,
+        "output_tokens": 3067,
+        "latency_s": 231.1
+      },
+      "measure": {
+        "backend": "claude-code",
+        "calls": 1,
+        "input_tokens": 4663,
+        "output_tokens": 136,
+        "latency_s": 3.4
+      },
+      "analyze": {
+        "backend": "claude-code",
+        "calls": 1,
+        "input_tokens": 7702,
+        "output_tokens": 1098,
+        "latency_s": 10.1
+      },
+      "draft": {
+        "backend": "claude-code",
+        "calls": 1,
+        "input_tokens": 9473,
+        "output_tokens": 4632,
+        "latency_s": 29.2
+      }
+    },
+    "cost_usd_list": 0.0884,
+    "profile": {
+      "parse": {
+        "content_in": 1969.0,
+        "sys_in": 221.2,
+        "out": 3067.0,
+        "calls": 4
+      },
+      "measure": {
+        "content_in": 4051.9,
+        "sys_in": 611.1,
+        "out": 136.0,
+        "calls": 1
+      },
+      "analyze": {
+        "content_in": 6081.4,
+        "sys_in": 1620.6,
+        "out": 1098.0,
+        "calls": 1
+      },
+      "draft": {
+        "content_in": 8360.3,
+        "sys_in": 1112.7,
+        "out": 4632.0,
+        "calls": 1
+      }
+    }
   },
-  "wall_time_s": 51.9,
+  "phases_s": {
+    "integrity": 0.0,
+    "parse": 65.4,
+    "measure": 3.4,
+    "analyze": 10.1,
+    "draft": 29.2,
+    "trace": 0.0
+  },
+  "wall_time_s": 108.2,
   "findings": [
     {
       "id": "F-001",
@@ -50,6 +149,26 @@
     },
     {
       "id": "F-002",
+      "source": "deterministic",
+      "type": "baseline_drift",
+      "severity": "high",
+      "cited_ids": [
+        "L-16"
+      ],
+      "rationale": "L-16 (legacy) was changed after sign-off: \"20%\" -> \"25%\". Check that this went through change control."
+    },
+    {
+      "id": "F-003",
+      "source": "deterministic",
+      "type": "baseline_drift",
+      "severity": "high",
+      "cited_ids": [
+        "L-19"
+      ],
+      "rationale": "L-19 (legacy) was changed after sign-off: \"and time\" -> \"(nothing)\"; \"and time\" -> \"(nothing)\". Check that this went through change control."
+    },
+    {
+      "id": "F-004",
       "source": "llm",
       "type": "contradiction",
       "severity": "high",
@@ -57,10 +176,10 @@
         "NP-REQ-009",
         "NP-REQ-011"
       ],
-      "rationale": "NP-REQ-009 says \"limit a single bolus to a maximum of 10 U\" for the Pediatric profile, but NP-REQ-011 says to \"reject any bolus request above 15 U\" for the same profile, so the Pediatric maximum bolus has two different values."
+      "rationale": "NP-REQ-009 limits a Pediatric bolus to \"a maximum of 10 U\", but NP-REQ-011 rejects only boluses \"above 15 U\" for the Pediatric profile, so the limit is 10 U in one place and 15 U in the other."
     },
     {
-      "id": "F-003",
+      "id": "F-005",
       "source": "deterministic",
       "type": "untestable",
       "severity": "medium",
@@ -70,17 +189,17 @@
       "rationale": "NP-REQ-018 is not measurable: \"The pump shall respond quickly to a press of the Bolus button.\""
     },
     {
-      "id": "F-004",
+      "id": "F-006",
       "source": "llm",
       "type": "missing_requirement",
       "severity": "medium",
       "cited_ids": [
         "NP-REQ-014"
       ],
-      "rationale": "NP-REQ-014 says \"the pump shall disable the Bolus button\" when Child Lock is ON, but no requirement says how the pump responds (feedback, tone, message, or no response) when the user presses the disabled button."
+      "rationale": "NP-REQ-014 states \"the pump shall disable the Bolus button\" when Child Lock is ON, but no requirement says how the pump responds (feedback, message, tone, or explicit no response) when the user presses the disabled button."
     },
     {
-      "id": "F-005",
+      "id": "F-007",
       "source": "llm",
       "type": "incomplete_enumeration",
       "severity": "medium",
@@ -88,7 +207,7 @@
         "NP-REQ-001",
         "NP-REQ-024"
       ],
-      "rationale": "NP-REQ-001 lists four delivery modes (Basal, Bolus, Extended Bolus, Suspend), while NP-REQ-024 lists only \"Basal, Bolus, and Suspend\" for both profiles. Extended Bolus is omitted with no stated reason."
+      "rationale": "NP-REQ-001 lists four delivery modes including Extended Bolus, while NP-REQ-024 lists the delivery modes as \"Basal, Bolus, and Suspend\" for both Adult and Pediatric profiles. No requirement explains why Extended Bolus is omitted."
     }
   ]
 }

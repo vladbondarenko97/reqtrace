@@ -1,14 +1,16 @@
 import csv
+import io
 import json
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
 
-from reqtrace import analyze, checks, parse, trace
+from reqtrace import analyze, checks, cost, integrity, parse, trace
 from reqtrace.cli import main
 from reqtrace.llm import LLM, BudgetExceeded, LLMError, extract_json
 from reqtrace.models import (
@@ -21,6 +23,7 @@ from reqtrace.models import (
     RetiredOut,
     Step,
 )
+from reqtrace.router import Router
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -47,9 +50,8 @@ def test_requirement_rejects(kw):
         req(**kw)
 
 
-def test_requirement_missing_measurable():
-    with pytest.raises(ValidationError):
-        Requirement(id="NP-REQ-001", title="t", text="x", feature="F")
+def test_measurable_defaults_true_until_the_measure_step_decides():
+    assert Requirement(id="NP-REQ-001", title="t", text="x", feature="F").measurable is True
 
 
 def test_parseout_empty():
@@ -123,13 +125,13 @@ def test_extract_json_fence():
 
 
 def test_mock_stale_fixture(tmp_path):
-    with pytest.raises(LLMError, match="stale"):
+    with pytest.raises(LLMError, match="no recorded fixture"):
         LLM("mock", tmp_path).ask("parse", "changed input", ParseOut)
 
 
 def test_budget_and_log(tmp_path):
     llm = LLM("mock", tmp_path, max_tokens=1)
-    llm.ask("parse", (DATA / "novapump_srs.md").read_text(), ParseOut)
+    llm.ask("parse", parse.split_srs((DATA / "novapump_srs.md").read_text())[0], ParseOut)
     with pytest.raises(BudgetExceeded):
         llm.ask("analyze", "x", AnalyzeOut)
     r = rows(llm)
@@ -204,6 +206,8 @@ def test_full_mock_run(tmp_path):
     assert "DRAFT — requires engineer review. Not for execution." in (tmp_path / "draft_protocol.md").read_text()
     s = json.loads((tmp_path / "summary.json").read_text())
     assert s["requirements"] == 25 and s["trace"]["requirements_covered"] == 25
+    # the edited legacy steps are flagged by the baseline check and refused by the AI draft step
+    assert {d["id"] for d in s["drift"]} == {"L-16", "L-19"} and all(d["retired_by_draft"] for d in s["drift"])
 
     report = ROOT / "evals/latest_report.md"
     backup = report.read_bytes() if report.exists() else None
@@ -216,3 +220,135 @@ def test_full_mock_run(tmp_path):
             report.unlink(missing_ok=True)
         else:
             report.write_bytes(backup)
+
+
+# 9. chunked parse
+SRS = (DATA / "novapump_srs.md").read_text()
+
+
+def test_split_srs_keeps_every_requirement_once():
+    pieces = parse.split_srs(SRS, size=7)
+    ids = [i for p in pieces for i in parse.REQ_HEADING.findall(p)]
+    assert len(pieces) == 4 and ids == parse.REQ_HEADING.findall(SRS) and len(set(ids)) == 25
+
+
+# 10. router: local first, escalate to the strong model, log it
+def routed(tmp_path, local_texts, strong_texts):
+    strong, local = LLM("claude-code", tmp_path), LLM("omlx", tmp_path, reset_log=False)
+    for llm, texts in ((strong, strong_texts), (local, local_texts)):
+        it = iter(texts)
+        llm._call = lambda task, system, prompt, h, it=it: (next(it), 1, 1, {})
+    return Router(strong, local, {"analyze"}), strong
+
+
+def test_router_sends_each_task_to_its_backend(tmp_path):
+    r, strong = routed(tmp_path, ['{"findings": []}'], ['{"findings": []}'])
+    r.ask("analyze", "x", AnalyzeOut)
+    assert [x["backend"] for x in rows(strong)] == ["omlx"]  # shared log: only the local model answered
+    assert r.escalations == 0
+
+
+def test_router_escalates_when_local_fails_twice(tmp_path):
+    r, strong = routed(tmp_path, ["junk", "junk"], ['{"findings": []}'])
+    assert r.ask("analyze", "x", AnalyzeOut).findings == []
+    log = rows(strong)
+    assert [x["backend"] for x in log] == ["omlx", "omlx", "claude-code"]
+    assert log[-1]["escalated_from"] == "omlx" and r.escalations == 1
+
+
+def test_non_local_task_never_touches_local(tmp_path):
+    r, strong = routed(tmp_path, [], ['{"findings": []}'])
+    r.local_tasks = set()
+    r.ask("analyze", "x", AnalyzeOut)
+    assert [x["backend"] for x in rows(strong)] == ["claude-code"]
+
+
+def test_omlx_request_shape(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_urlopen(req, timeout):
+        seen["body"], seen["auth"] = json.loads(req.data), req.get_header("Authorization")
+        return io.BytesIO(json.dumps({"choices": [{"message": {"content": '{"findings": []}'}}],
+                                      "usage": {"prompt_tokens": 7, "completion_tokens": 3}}).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("OMLX_API_KEY", "test-key")
+    assert LLM("omlx", tmp_path).ask("analyze", "x", AnalyzeOut).findings == []
+    assert seen["auth"] == "Bearer test-key" and seen["body"]["temperature"] == 0
+    assert seen["body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert rows(LLM("omlx", tmp_path, reset_log=False))[0]["input_tokens"] == 7
+
+
+# 11. baseline integrity
+def make_docs(tmp_path, legacy_csv=None):
+    (tmp_path / "srs.md").write_text(SRS)
+    (tmp_path / "sys.md").write_text((DATA / "novapump_system_reqs.md").read_text())
+    (tmp_path / "legacy.csv").write_text(legacy_csv or (DATA / "legacy_protocol_v1.csv").read_text())
+    return [tmp_path / n for n in ("srs.md", "sys.md", "legacy.csv")]
+
+
+def test_drift_finds_exact_edits_and_ignores_line_endings(tmp_path):
+    base = tmp_path / "base.json"
+    integrity.write_baseline(base, integrity.snapshot(*make_docs(tmp_path)))
+    approved = (tmp_path / "legacy.csv").read_text()
+    assert integrity.find_drift(base, integrity.snapshot(*make_docs(tmp_path, approved.replace("\n", "\r\n")))) == []
+    d = integrity.find_drift(base, integrity.snapshot(*make_docs(tmp_path, approved.replace("to 25%", "to 30%"))))
+    assert [(x.id, x.kind, x.change) for x in d] == [("L-16", "changed", '"25%" -> "30%"')]
+    f = integrity.drift_findings(d)[0]
+    assert f.type == "baseline_drift" and f.cited_ids == ["L-16"] and f.severity == "high"
+
+
+def test_committed_baseline_flags_the_drill_edits():
+    d = integrity.find_drift(DATA / "baseline.json", integrity.snapshot(
+        DATA / "novapump_srs.md", DATA / "novapump_system_reqs.md", DATA / "legacy_protocol_v1.csv"))
+    assert sorted(x.id for x in d) == ["L-16", "L-19"]
+
+
+# 12. cost model
+ROW = dict(valid=True, backend="omlx", latency_s=1, attempt=1)
+
+
+def log_rows():
+    mk = lambda task, tin, out, user: {**ROW, "task": task, "input_tokens": tin, "output_tokens": out,
+                                       "system_chars": 1000, "user_chars": user}
+    return [mk("parse", 1000, 1400, 3000), mk("parse", 1000, 1400, 3000), mk("measure", 800, 20, 2500),
+            mk("analyze", 2000, 300, 7000), mk("draft", 3000, 1500, 9000)]
+
+
+def test_profile_splits_content_from_prompt_overhead():
+    p = cost.profile(log_rows())
+    assert p["parse"]["calls"] == 2 and p["parse"]["content_in"] == 1500.0 and p["parse"]["sys_in"] == 250.0
+
+
+def test_projection_grows_with_size_and_hybrid_is_cheaper():
+    prof = cost.profile(log_rows())
+    small, big = cost.scenarios(prof, 50), cost.scenarios(prof, 200)
+    for name in cost.SCENARIOS:
+        assert big[name]["usd"] > small[name]["usd"] > 0
+    assert big["Hybrid (parse on local model)"]["usd"] < big["All frontier"]["usd"]
+    assert big["Hybrid (parse on local model)"]["tasks"]["parse"]["usd"] == 0
+
+
+def test_by_backend_uses_recorded_backend_for_replays():
+    r = {**log_rows()[0], "backend": "mock", "recorded_backend": "omlx"}
+    assert list(cost.by_backend([r])) == ["omlx"]
+
+
+def test_measurability_is_a_separate_judgement(tmp_path):
+    reqs = [req("NP-REQ-001"), req("NP-REQ-002")]
+    llm = fake(tmp_path, '{"not_measurable": ["NP-REQ-002"]}')
+    out = parse.judge_measurability(llm, reqs)
+    assert [(r.id, r.measurable) for r in out] == [("NP-REQ-001", True), ("NP-REQ-002", False)]
+    # an ID the model invented is rejected by the check, like every other answer
+    bad = fake(tmp_path, '{"not_measurable": ["NP-REQ-099"]}', '{"not_measurable": []}')
+    assert all(r.measurable for r in parse.judge_measurability(bad, reqs))
+    assert [r["valid"] for r in rows(bad)] == [False, True]
+
+
+# 13. dashboard
+def test_dashboard_builds_from_the_committed_ledger():
+    from reqtrace.dashboard import build
+
+    page = build(ROOT / "evals/ledger.jsonl")
+    assert page.startswith("<!doctype html>") and "__DATA__" not in page and "Hybrid" in page
+    assert "api_key" not in page.lower()  # nothing secret can reach the page

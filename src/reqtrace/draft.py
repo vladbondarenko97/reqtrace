@@ -1,4 +1,9 @@
-"""Ask the model to classify legacy steps (reuse / retire) and write new steps; render the protocol."""
+"""Draft the verification protocol for the new device.
+
+The model gets the parsed requirements and the old protocol. For each old test step it decides: still
+valid for the new device (reuse as is) or obsolete (retire, with a reason). Then it writes new steps for
+whatever the old steps do not cover. Rendering is plain code.
+"""
 import json
 
 from .llm import LLM
@@ -10,7 +15,7 @@ STAMP = "DRAFT — requires engineer review. Not for execution."
 def draft(llm: LLM, reqs: list[Requirement], legacy: list[LegacyStep]) -> DraftOut:
     legacy_ids = {s.step for s in legacy}
 
-    def known_legacy(out: DraftOut):
+    def known_legacy(out: DraftOut):  # every old step must be accounted for exactly once, and only real ones
         used = [s.legacy_step for s in out.steps if s.legacy_step] + [r.legacy_step for r in out.retired]
         bad = [i for i in used if i not in legacy_ids]
         dup = sorted({i for i in used if used.count(i) > 1})

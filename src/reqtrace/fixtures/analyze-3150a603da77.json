@@ -1,0 +1,14 @@
+{
+ "task": "analyze",
+ "backend": "claude-code",
+ "model": "sonnet",
+ "prompt_sha256": "3150a603da7743b422f18bb9109a04d8958001773b3aec5bbb28e91b03bda6ab",
+ "input_tokens": 7702,
+ "output_tokens": 1098,
+ "latency_s": 10.14,
+ "extra": {
+  "cost_usd_list": 0.020982800000000003
+ },
+ "recorded_by": "reqtrace run --record",
+ "response": "{\"findings\": [{\"type\": \"contradiction\", \"severity\": \"high\", \"cited_ids\": [\"NP-REQ-009\", \"NP-REQ-011\"], \"rationale\": \"NP-REQ-009 limits a Pediatric bolus to \\\"a maximum of 10 U\\\", but NP-REQ-011 rejects only boluses \\\"above 15 U\\\" for the Pediatric profile, so the limit is 10 U in one place and 15 U in the other.\"}, {\"type\": \"missing_requirement\", \"severity\": \"medium\", \"cited_ids\": [\"NP-REQ-014\"], \"rationale\": \"NP-REQ-014 states \\\"the pump shall disable the Bolus button\\\" when Child Lock is ON, but no requirement says how the pump responds (feedback, message, tone, or explicit no response) when the user presses the disabled button.\"}, {\"type\": \"incomplete_enumeration\", \"severity\": \"medium\", \"cited_ids\": [\"NP-REQ-001\", \"NP-REQ-024\"], \"rationale\": \"NP-REQ-001 lists four delivery modes including Extended Bolus, while NP-REQ-024 lists the delivery modes as \\\"Basal, Bolus, and Suspend\\\" for both Adult and Pediatric profiles. No requirement explains why Extended Bolus is omitted.\"}, {\"type\": \"untestable\", \"severity\": \"medium\", \"cited_ids\": [\"NP-REQ-018\"], \"rationale\": \"NP-REQ-018 says the pump \\\"shall respond quickly to a press of the Bolus button\\\" with no time value a tester can check.\"}]}"
+}

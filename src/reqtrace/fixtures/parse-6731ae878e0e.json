@@ -1,0 +1,14 @@
+{
+ "task": "parse",
+ "backend": "omlx",
+ "model": "Qwen3.5-9B-MLX-8bit",
+ "prompt_sha256": "6731ae878e0e87a64f8efd9aae7fe4a0142c9ca08c67feb0a616aa972dad06c0",
+ "input_tokens": 543,
+ "output_tokens": 512,
+ "latency_s": 44.04,
+ "extra": {
+  "tokens_per_s": 15.17
+ },
+ "recorded_by": "reqtrace run --record",
+ "response": "{\n  \"requirements\": [\n    {\n      \"id\": \"NP-REQ-022\",\n      \"title\": \"Alarm Acknowledge\",\n      \"text\": \"The pump shall silence an active alarm tone when the user presses the Back button, and shall keep the alarm message displayed until the alarm condition is cleared.\",\n      \"feature\": \"Alarms\",\n      \"modes\": [],\n      \"profiles\": [\n        \"Adult\",\n        \"Pediatric\"\n      ],\n      \"traces_to\": \"NP-SYS-004\"\n    },\n    {\n      \"id\": \"NP-REQ-023\",\n      \"title\": \"Delivery Event Log\",\n      \"text\": \"The pump shall record every delivery event in the event log with its timestamp, delivery mode, and delivered units.\",\n      \"feature\": \"Logging\",\n      \"modes\": [\n        \"Basal\",\n        \"Bolus\",\n        \"Extended Bolus\",\n        \"Suspend\"\n      ],\n      \"profiles\": [\n        \"Adult\",\n        \"Pediatric\"\n      ],\n      \"traces_to\": \"NP-SYS-005\"\n    },\n    {\n      \"id\": \"NP-REQ-024\",\n      \"title\": \"Settings Delivery Modes\",\n      \"text\": \"The Settings menu shall allow the user to configure default parameters for the following delivery modes: Basal, Bolus, and Suspend.\",\n      \"feature\": \"Settings\",\n      \"modes\": [\n        \"Basal\",\n        \"Bolus\",\n        \"Suspend\"\n      ],\n      \"profiles\": [\n        \"Adult\",\n        \"Pediatric\"\n      ],\n      \"traces_to\": \"NP-SYS-006\"\n    },\n    {\n      \"id\": \"NP-REQ-025\",\n      \"title\": \"Date and Time Setting\",\n      \"text\": \"The pump shall allow the user to set the date and time, with a resolution of 1 minute, from the Settings menu.\",\n      \"feature\": \"Settings\",\n      \"modes\": [],\n      \"profiles\": [\n        \"Adult\",\n        \"Pediatric\"\n      ],\n      \"traces_to\": \"NP-SYS-007\"\n    }\n  ]\n}"
+}
