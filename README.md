@@ -6,6 +6,8 @@
 
 > The Novapump NP-200 insulin pump, its requirements and its legacy protocol are **fictional and synthetic**. Nothing here comes from a real product or document.
 
+**[Live dashboard: local model vs API](https://vladbondarenko97.github.io/reqtrace/)** · [Decisions](docs/DECISIONS.md) · [Eval history](evals/history.md)
+
 ![make demo, end to end](docs/demo.gif)
 
 ## The result in 30 seconds
@@ -79,7 +81,7 @@ What this taught us, and the rule it justifies:
 - **Analysis and drafting stay on Claude.** On the 9B model, analysis missed one planted defect and invented four; drafting failed validation (it reused one old test step twice), identically on both attempts to run it. At temperature 0 local failures are repeatable, which makes them debuggable.
 - **A local answer that fails validation is escalated to Claude** instead of failing the run, and the escalation is logged.
 
-Open [`docs/dashboard.html`](docs/dashboard.html) for the scorecard, the per-defect grid, the calculator (sliders for pages, price and runs per year), the drill table and the routing policy with the evidence behind each choice. It is a single file with no server and no external requests.
+Open the [live dashboard](https://vladbondarenko97.github.io/reqtrace/) (source: [`docs/dashboard.html`](docs/dashboard.html)) for the scorecard, the per-defect grid, the calculator (sliders for pages, price and runs per year), the drill table and the routing policy with the evidence behind each choice. It is a single file with no server and no external requests.
 
 ## Cost at scale
 
