@@ -1,6 +1,6 @@
 [project]
 name = "reqtrace"
-version = "0.1.0"
+version = "0.2.0"
 description = "Guardrailed AI pipeline: SRS -> findings -> trace matrix -> draft verification protocol (synthetic demo)"
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2", "click>=8"]

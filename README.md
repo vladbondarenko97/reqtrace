@@ -14,12 +14,12 @@
 
 | | Result | Evidence |
 |---|---|---|
-| **Quality** | Caught **5 of 5** planted defects with **0 false positives**, on live runs | [`evals/latest_report.md`](evals/latest_report.md), [`evals/history.md`](evals/history.md) |
-| **Cost** | Moving one step to a local 9B model cut the measured model cost **55%** on the demo ($0.195 → $0.088 per run) with no loss in quality | [`evals/ledger.jsonl`](evals/ledger.jsonl) |
-| **Cost at scale** *(projection)* | About **44% lower** per run on a 100-200 page SRS; $1.80-$3.60 saved per run at illustrative prices | [Dashboard](docs/dashboard.html), calculator included |
-| **Governance** | A cheaper model is only allowed to take a step if it passes the same quality gate. **Three of the four local routings we tested failed the gate and were rejected or redesigned.** | [Scorecard below](#which-model-should-do-which-step) |
-| **Control** | Two unapproved edits to a controlled test protocol were flagged on **every run**, by two independent mechanisms | [Change-control drill](#change-control-drill) |
-| **Reproducibility** | 35 tests plus a CI gate on every push (ruff, pytest, full replayed pipeline, eval at 5/5 with 0 false positives) | [CI](.github/workflows/ci.yml) |
+| **Quality** | Caught **5 of 5 planted defects with 0 false positives**. The all-Claude pipeline has done this on 8 of 8 live runs since the last input fix; the adopted hybrid on every run since (details below) | [`evals/history.md`](evals/history.md), [`evals/latest_report.md`](evals/latest_report.md) |
+| **Cost** | Moving one step to a local 9B model cut the measured model cost by **55%** on the demo ($0.195 → $0.088 per run) with no loss in quality | [`evals/ledger.jsonl`](evals/ledger.jsonl) |
+| **Cost at scale** *(projection)* | About 44% lower per run on a 100-200 page SRS; $1.80-$3.60 saved per run at illustrative prices | [Dashboard](https://vladbondarenko97.github.io/reqtrace/), calculator included |
+| **Governance** | A cheaper model is only allowed to take a step if it passes the same quality gate. Three of the four local routings we tested failed the gate and were rejected or redesigned | [Scorecard below](#which-model-should-do-which-step) |
+| **Control** | Two unapproved edits to a controlled test protocol were flagged on every run, by two independent mechanisms | [Change-control drill](#change-control-drill) |
+| **Delivery** | 36 tests and a gate on every push, including tests that prove the gate fails on a missed defect and on a false positive. Tagged releases re-run the gate before publishing the wheel and the dashboard | [CI](.github/workflows/ci.yml), [release workflow](.github/workflows/release.yml), [CHANGELOG](CHANGELOG.md) |
 
 A human engineer reviews and approves everything. Every output is stamped *DRAFT — requires engineer review. Not for execution.*
 
@@ -146,7 +146,15 @@ Planted answer key: 5 defects hidden in a 25-requirement synthetic SRS ([`data/g
 | D4 | untestable | NP-REQ-018 | deterministic rule |
 | D5 | orphan_trace | NP-REQ-025 | deterministic rule |
 
+**Stability, stated exactly.** The first three iterations had misses and false positives (listed in the history). Since the last input fix (iteration 4), the all-Claude pipeline passed 8 of 8 live runs at 5/5 with 0 false positives. The adopted hybrid passed its scored run, the recorded demo run and a fresh-clone run (only the first is in `history.md`; hosted models cannot be pinned to temperature 0, so live runs do vary).
+
 The full history, including the failures and why they happened, is in [`evals/history.md`](evals/history.md) and [`docs/DECISIONS.md`](docs/DECISIONS.md). Short version: the first run was 4/5 (my prompt was too cautious); later runs produced false positives because the reviewer found two real gaps I had accidentally left in my own synthetic SRS, and **I fixed the input, not the answer key**; and the first attempt to run more of the pipeline locally failed the gate and was redesigned.
+
+## CI and releases
+
+- **On every push and pull request (about 16 seconds):** ruff, pytest, the full pipeline replayed from recorded model responses, and the eval gate (exit code 1 on any miss or false positive). Tests cover the risks in the controls table, and two of them deliberately break the output to prove the gate fails.
+- **Why CI replays instead of calling a model:** it protects the pipeline, the guardrails and the scoring; it does not re-test the live model, because a multi-minute model call on every commit is how CI gets ignored. Live quality is evidenced by the eval history and by `make compare`, run when prompts, data or models change.
+- **On a tag `v*`:** the same gate runs first, then the wheel is built and smoke-tested in a clean environment, a GitHub Release is created with the wheel and the dashboard attached, and `docs/` is deployed to GitHub Pages. If the gate fails, nothing is published. Releases are listed in the [CHANGELOG](CHANGELOG.md).
 
 ## Taking this into an enterprise
 
@@ -178,7 +186,7 @@ make demo HYBRID=1      # parse on a local oMLX model, judgement on Claude (need
 make demo BACKEND=omlx  # everything on the local model (it will not pass; see above)
 make compare            # all routings live, scored into evals/ledger.jsonl (about 15 minutes)
 make dashboard          # rebuild docs/dashboard.html from the ledger and open it in your browser
-make test               # ruff + pytest
+make test               # ruff + pytest (36 tests)
 ```
 
 Outputs land in `out/`: `findings.md`, `trace_matrix.csv`, `draft_protocol.md`, `summary.json`, `llm_log.jsonl`. A real run is saved in [`docs/sample_output/`](docs/sample_output/). The local backend reads the oMLX key from `OMLX_API_KEY` or from oMLX's own settings file on your machine; it is never stored in this repo.

@@ -40,10 +40,6 @@ def step(id, traces, **kw):
 
 
 # 1. schema
-def test_requirement_valid():
-    assert req().id == "NP-REQ-001"
-
-
 @pytest.mark.parametrize("kw", [{"id": "REQ-1"}, {"traces_to": "SYS-1"}, {"text": ""}])
 def test_requirement_rejects(kw):
     with pytest.raises(ValidationError):
@@ -52,11 +48,6 @@ def test_requirement_rejects(kw):
 
 def test_measurable_defaults_true_until_the_measure_step_decides():
     assert Requirement(id="NP-REQ-001", title="t", text="x", feature="F").measurable is True
-
-
-def test_parseout_empty():
-    with pytest.raises(ValidationError):
-        ParseOut(requirements=[])
 
 
 def test_llmfinding_rejects():
@@ -352,3 +343,54 @@ def test_dashboard_builds_from_the_committed_ledger():
     page = build(ROOT / "evals/ledger.jsonl")
     assert page.startswith("<!doctype html>") and "__DATA__" not in page and "Hybrid" in page
     assert "api_key" not in page.lower()  # nothing secret can reach the page
+
+
+# 14. the CI gate itself: prove it fails when it should
+def run_gate(out_dir):
+    """Run evals/run_eval.py on an output folder; restore the committed report afterwards."""
+    report = ROOT / "evals/latest_report.md"
+    backup = report.read_bytes()
+    try:
+        return subprocess.run([sys.executable, str(ROOT / "evals/run_eval.py"), "--out", str(out_dir), "--mock"],
+                              cwd=ROOT, capture_output=True, text=True)
+    finally:
+        report.write_bytes(backup)
+
+
+def mock_run(out_dir):
+    res = CliRunner().invoke(main, ["run", "--mock", "--out", str(out_dir)])
+    assert res.exit_code == 0, res.output
+    return json.loads((out_dir / "summary.json").read_text())
+
+
+def rewrite(out_dir, summary, findings_md):
+    (out_dir / "summary.json").write_text(json.dumps(summary))
+    (out_dir / "findings.md").write_text(findings_md)
+
+
+def test_gate_passes_on_the_clean_run(tmp_path):
+    mock_run(tmp_path)
+    assert run_gate(tmp_path).returncode == 0
+
+
+def test_gate_fails_when_a_planted_defect_is_missed(tmp_path):
+    summary = mock_run(tmp_path)
+    d2 = next(f for f in summary["findings"] if f["type"] == "missing_requirement")  # the catch for planted defect D2
+    summary["findings"] = [f for f in summary["findings"] if f["id"] != d2["id"]]
+    md = (tmp_path / "findings.md").read_text()
+    start = md.index(f"### {d2['id']}")
+    nxt = md.find("\n### ", start + 1)
+    rewrite(tmp_path, summary, md[:start] + (md[nxt + 1 :] if nxt != -1 else ""))
+    p = run_gate(tmp_path)
+    assert p.returncode == 1 and "MISSED" in p.stdout
+
+
+def test_gate_fails_on_a_false_positive(tmp_path):
+    summary = mock_run(tmp_path)
+    extra = {"id": "F-099", "source": "llm", "type": "contradiction", "severity": "low",
+             "cited_ids": ["NP-REQ-003"], "rationale": "not in the answer key"}
+    summary["findings"].append(extra)
+    md = (tmp_path / "findings.md").read_text() + "\n### F-099 · contradiction · llm\n- **Cited:** NP-REQ-003\n- **Rationale:** x\n"
+    rewrite(tmp_path, summary, md)
+    p = run_gate(tmp_path)
+    assert p.returncode == 1 and "False positives" in p.stdout

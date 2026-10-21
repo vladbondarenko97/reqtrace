@@ -1,0 +1,55 @@
+name: release
+# Push a tag like v0.2.0. The eval gate runs first; only if it passes are the wheel and the dashboard published.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    uses: ./.github/workflows/ci.yml   # ruff, pytest, full replayed pipeline, eval at 5/5 with 0 false positives
+
+  package:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # create the GitHub Release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Tag must match the package version
+        run: test "v$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")" = "$GITHUB_REF_NAME"
+      - run: pip install build && python -m build
+      - name: Smoke-test the built wheel (prompts, fixtures and the dashboard template must be inside it)
+        run: |
+          python -m venv /tmp/smoke && /tmp/smoke/bin/pip install -q dist/*.whl
+          /tmp/smoke/bin/reqtrace run --mock --out /tmp/smoke-out
+          /tmp/smoke/bin/reqtrace dashboard --out /tmp/smoke-dashboard.html
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* docs/dashboard.html \
+            --title "ReqTrace $GITHUB_REF_NAME" --generate-notes \
+            --notes "Eval gate passed before this release was published. See CHANGELOG.md."
+
+  pages:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: docs }
+      - id: deployment
+        uses: actions/deploy-pages@v4
