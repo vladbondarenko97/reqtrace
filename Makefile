@@ -4,11 +4,13 @@
 # make demo BACKEND=omlx        everything on the local model
 # make demo BACKEND=anthropic   use the Anthropic API (needs ANTHROPIC_API_KEY, pip install -e '.[anthropic]')
 # make compare         run all three routings live, score each into evals/ledger.jsonl, rebuild the dashboard
-# make dashboard       rebuild docs/dashboard.html from evals/ledger.jsonl
+# make dashboard       rebuild docs/dashboard.html from evals/ledger.jsonl and open it in your browser
 BACKEND ?= claude-code
 FLAGS = $(if $(MOCK),--mock,--backend $(BACKEND) $(if $(HYBRID),--hybrid))
 EVALFLAGS = $(if $(MOCK),--mock,)
 PY ?= python
+# Opens a file in the default browser: `open` on macOS, `xdg-open` on Linux. Silently does nothing if neither exists.
+OPEN ?= $(shell command -v open || command -v xdg-open)
 
 install:
 	$(PY) -m pip install -q -e '.[dev]'
@@ -23,12 +25,15 @@ demo:
 	$(STAGE) echo "=== trace matrix (out/trace_matrix.csv) ==="; cut -c1-110 out/trace_matrix.csv | head -22
 	$(STAGE) echo "=== draft protocol (out/draft_protocol.md) ==="; sed -n '1,16p' out/draft_protocol.md | cut -c1-200; echo ...; grep -A12 "^## Retired" out/draft_protocol.md | cut -c1-170
 	$(STAGE) echo "=== eval ==="; $(PY) evals/run_eval.py $(EVALFLAGS)
+	$(STAGE) echo "=== dashboard: local model vs API (opens in your browser) ==="; $(MAKE) --no-print-directory dashboard
 
 test:
 	ruff check . && pytest -q
 
+# The dashboard shows the committed comparison runs in evals/ledger.jsonl (`make compare` adds new ones).
 dashboard:
 	reqtrace dashboard
+	-@$(if $(OPEN),$(OPEN) docs/dashboard.html,echo "open docs/dashboard.html in a browser")
 
 # Three live runs of the same pipeline, differing only in routing. Frontier-only is the reference
 # the other two are scored against (parse fidelity). Takes several minutes: the local model is slow on long outputs.

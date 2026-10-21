@@ -76,7 +76,7 @@ make demo HYBRID=1                # parse on a local oMLX model, judgement on Cl
 make demo BACKEND=omlx            # everything on the local model (it will not pass; see above)
 make demo BACKEND=anthropic       # live, Anthropic API (pip install -e '.[anthropic]', set ANTHROPIC_API_KEY; untested here)
 make compare                      # all routings live, scored into evals/ledger.jsonl; rebuilds the dashboard
-make dashboard                    # docs/dashboard.html from the ledger (open it in a browser, no server)
+make dashboard                    # rebuild docs/dashboard.html from the ledger and open it in your browser (make demo ends with this)
 ```
 
 The local backend reads the oMLX key from `OMLX_API_KEY` or from oMLX's own settings file on your machine. It is never stored in this repo.
