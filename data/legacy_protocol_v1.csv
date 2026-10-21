@@ -14,7 +14,7 @@ L-12,Prime cartridge,Select Priming mode and run a prime cycle,Pump delivers 0.5
 L-13,Square Wave bolus,Select Square Wave and set 4 U over 2 hours,4 U delivered evenly over 2 hours,NP100-REQ-009
 L-14,Occlusion alarm,Block the infusion line during basal delivery,Delivery stops; alarm tone sounds; message Occlusion detected is shown,NP100-REQ-014
 L-15,Low reservoir alarm,Reduce reservoir volume to 20 U,Alarm tone sounds; message Low reservoir is shown,NP100-REQ-015
-L-16,Low battery alarm,Discharge battery to 20%,Alarm tone sounds; message Low battery is shown,NP100-REQ-016
+L-16,Low battery alarm,Discharge battery to 25%,Alarm tone sounds; message Low battery is shown,NP100-REQ-016
 L-17,Silence alarm,Press the OK button during an active alarm,Alarm tone silenced; message remains,NP100-REQ-017
 L-18,Event log entries,Deliver a basal then a bolus and open the event log,Both events listed with timestamp mode and units,NP100-REQ-018
-L-19,Set date and time,Open Settings and set the date and time,Date and time are saved and shown on the home screen,NP100-REQ-019
+L-19,Set date and time,Open Settings and set the date,Date are saved and shown on the home screen,NP100-REQ-019
