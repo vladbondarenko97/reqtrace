@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from . import analyze as analyze_mod
-from . import checks, cost, integrity, parse, report, trace
+from . import checks, cost, integrity, parse, report, telemetry, trace
 from . import draft as draft_mod
 from .llm import LLMError, have_claude_cli
 from .router import build_llm
@@ -38,6 +38,7 @@ def main():
 @click.option("--hybrid", is_flag=True, help="Shortcut for --local-tasks parse.")
 @click.option("--max-tokens", default=400_000, show_default=True, help="Abort if total paid tokens exceed this.")
 @click.option("--record", is_flag=True, help="Save validated responses as mock fixtures (src/reqtrace/fixtures).")
+@telemetry.traced
 def run(srs, sys_path, legacy, baseline, out, mock, backend, model, local_tasks, hybrid, max_tokens, record):
     """Run the full pipeline and write findings, trace matrix, draft protocol and summary to --out."""
     if mock and record:

@@ -30,6 +30,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
+from . import telemetry
+
 PROMPTS = Path(__file__).parent / "prompts"
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -146,6 +148,7 @@ class LLM:
                "valid": error is None, "error": error, **extra}
         with self._lock, self.log_path.open("a") as f:
             f.write(json.dumps(row) + "\n")
+        telemetry.emit(row, time.time() - latency, time.time())
 
     def _call(self, task, system, prompt, first_hash):
         if self.backend == "mock":

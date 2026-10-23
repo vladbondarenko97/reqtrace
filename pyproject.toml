@@ -7,6 +7,7 @@ dependencies = ["pydantic>=2", "click>=8"]
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.40"]   # only for --backend anthropic
+otel = ["opentelemetry-sdk>=1.27", "opentelemetry-exporter-otlp-proto-http>=1.27"]   # optional traces, see telemetry.py
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [project.scripts]
