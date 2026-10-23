@@ -1,0 +1,46 @@
+name: eval-gate
+description: >
+  Run an AI pipeline and score it against a planted-defect answer key. The job fails when the scorer exits
+  non-zero (a missed defect or a false positive), so a prompt or model change cannot merge unless it still passes.
+  Defaults match this repo; pass your own commands to gate another project.
+inputs:
+  python-version: { description: Python version, default: "3.12" }
+  working-directory: { description: Where the project lives, default: . }
+  extras: { description: "pip extras to install (pip install -e '.[extras]')", default: dev }
+  pipeline-command: { description: Produces the output to score, default: "reqtrace run --mock --out out" }
+  eval-command: { description: "Scores the output; must exit non-zero on failure", default: "python evals/run_eval.py --mock" }
+  artifact-paths: { description: Files and folders to keep as evidence, default: "out eval-gate.log evals/latest_report.md" }
+outputs:
+  status: { description: "0 when the gate passed", value: "${{ steps.gate.outputs.status }}" }
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: ${{ inputs.working-directory }}/pyproject.toml
+    - run: pip install -e '.[${{ inputs.extras }}]'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - id: gate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        PIPELINE: ${{ inputs.pipeline-command }}
+        EVAL: ${{ inputs.eval-command }}
+      run: |
+        set -o pipefail; status=0
+        { bash -c "$PIPELINE" && bash -c "$EVAL"; } 2>&1 | tee eval-gate.log || status=$?
+        { echo "### Eval gate: $([ "$status" = 0 ] && echo passed || echo FAILED)"; echo '```'; tail -40 eval-gate.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: eval-gate
+        path: ${{ inputs.artifact-paths }}
+        if-no-files-found: ignore
+        # artifact-paths are relative to the repo root, so run this action with working-directory: . (default) for evidence upload
+    - if: steps.gate.outputs.status != '0'
+      shell: bash
+      run: echo "::error::eval gate failed (exit ${{ steps.gate.outputs.status }})"; exit 1

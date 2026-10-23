@@ -15,5 +15,4 @@ jobs:
       - run: pip install -e '.[dev]'
       - run: ruff check .
       - run: pytest -q
-      - run: reqtrace run --mock --out out
-      - run: python evals/run_eval.py --mock   # exits non-zero if recall < 5/5 or false positives > 0
+      - uses: ./.github/actions/eval-gate      # reqtrace run --mock, then the scorer: exits non-zero if recall < 5/5 or false positives > 0

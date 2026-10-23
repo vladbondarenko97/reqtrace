@@ -207,3 +207,16 @@ Outputs land in `out/`: `findings.md`, `trace_matrix.csv`, `draft_protocol.md`, 
 ## Everything here is synthetic
 
 The Novapump NP-200 does not exist. The device, its requirements, the "NP-100" legacy protocol and every identifier were invented for this demo; no real product, company or document was used as a source.
+
+## Use the eval gate in your own repo
+
+`.github/actions/eval-gate` is a composite action: run a pipeline, score it against a planted-defect answer key,
+fail the build on a miss, and keep the evidence (job summary plus an artifact). The defaults are this repo's; pass your own commands to gate another project:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: vladbondarenko97/reqtrace/.github/actions/eval-gate@main
+  with:
+    pipeline-command: python run_my_pipeline.py --out out
+    eval-command: python score.py out answer_key.json   # must exit non-zero when the output is not good enough
+```
